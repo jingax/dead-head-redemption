@@ -28,6 +28,19 @@ model = dhr.reorder(
 )
 ```
 
+### Plot head similarity heatmaps
+
+```python
+dhr.plot_similarity(
+    model,
+    val_dir="/path/to/imagenet/val",
+    output="head_similarity.png",
+    imgcount=1000,
+)
+```
+
+This samples validation images, accumulates post-softmax attention per head, and saves one figure with a subplot per layer (e.g. 12 heatmaps for ViT-Base). Each heatmap shows pairwise cosine similarity between heads.
+
 `dhr.reorder` will:
 
 1. Sample validation images with `torchvision.datasets.ImageFolder`

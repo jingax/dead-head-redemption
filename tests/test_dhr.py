@@ -15,6 +15,7 @@ from torchvision.transforms import functional as TF
 
 from dhr.ordering import greedy_chain_ordering
 from dhr.permute import permute_attention_heads
+from dhr.plot import plot_similarity
 from dhr.reorder import reorder
 from dhr.similarity import cosine_similarity_matrix
 
@@ -113,6 +114,29 @@ def test_reorder_runs_on_fake_validation_dir(tmp_path: Path) -> None:
     with torch.no_grad():
         output = reordered(image)
     assert output.shape[0] == 1
+
+
+def test_plot_similarity_writes_figure(tmp_path: Path) -> None:
+    set_fused_attn(False)
+    torch.manual_seed(2)
+
+    val_dir = _make_fake_imagenet(tmp_path / "val_plot", count=12)
+    model = timm.create_model("vit_small_patch16_224", pretrained=False)
+    output = tmp_path / "similarity.png"
+
+    saved_path = plot_similarity(
+        model,
+        val_dir=val_dir,
+        output=output,
+        imgcount=8,
+        batch_size=4,
+        seed=2,
+        device="cpu",
+    )
+
+    assert saved_path == output
+    assert output.is_file()
+    assert output.stat().st_size > 0
 
 
 def test_cosine_similarity_matrix_is_symmetric() -> None:

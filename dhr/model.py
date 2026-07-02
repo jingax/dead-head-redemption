@@ -33,20 +33,22 @@ def get_attention_module(model: VisionTransformer, layer_idx: int) -> Attention:
     return attn
 
 
-def validate_reorder_inputs(
+def validate_target_layers(
     model: nn.Module,
-    target_layers: list[int],
-    new_heads: int,
+    target_layers: list[int] | None = None,
 ) -> tuple[VisionTransformer, list[int], int]:
-    """Validate reorder inputs and return normalized layer indices."""
+    """Validate layer indices and return normalized layers plus head count."""
     if not is_vit_model(model):
-        raise TypeError("dhr.reorder only supports timm VisionTransformer models.")
-
-    if not target_layers:
-        raise ValueError("target_layers must contain at least one layer index.")
+        raise TypeError("dhr only supports timm VisionTransformer models.")
 
     depth = len(model.blocks)
-    normalized_layers = sorted({int(layer) for layer in target_layers})
+    if target_layers is None:
+        normalized_layers = list(range(depth))
+    else:
+        if not target_layers:
+            raise ValueError("target_layers must contain at least one layer index.")
+        normalized_layers = sorted({int(layer) for layer in target_layers})
+
     for layer_idx in normalized_layers:
         if layer_idx < 0 or layer_idx >= depth:
             raise IndexError(
@@ -61,6 +63,17 @@ def validate_reorder_inputs(
                 f"All target layers must share the same head count; layer {layer_idx} has "
                 f"{layer_heads} heads, expected {num_heads}."
             )
+
+    return model, normalized_layers, num_heads
+
+
+def validate_reorder_inputs(
+    model: nn.Module,
+    target_layers: list[int],
+    new_heads: int,
+) -> tuple[VisionTransformer, list[int], int]:
+    """Validate reorder inputs and return normalized layer indices."""
+    model, normalized_layers, num_heads = validate_target_layers(model, target_layers)
 
     if new_heads <= 0:
         raise ValueError("new_heads must be a positive integer.")
